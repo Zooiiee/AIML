@@ -1,51 +1,75 @@
-/* Water Jug Problem using DFS */
+% --- Water Jug DFS solver ---
 
-/* Define jug capacities */
-capacity(jugA, 4).
-capacity(jugB, 3).
+% Example capacities (you can change)
+capacity(jug1, 4).
+capacity(jug2, 3).
 
-/* Define the goal state: Jug A should have 2 liters */
-goal(state(2, _)).
+% Target amount to measure
+target(2).
 
-/* Define possible moves */
-move(state(A, B), state(4, B)) :- A < 4.        % Fill Jug A
-move(state(A, B), state(A, 3)) :- B < 3.        % Fill Jug B
-move(state(A, B), state(0, B)) :- A > 0.        % Empty Jug A
-move(state(A, B), state(A, 0)) :- B > 0.        % Empty Jug B
+% Initial state: both jugs empty
+initial_state(state(0,0)).
 
-% Pour A to B
-move(state(A, B), state(NewA, NewB)) :-
-    A > 0, B < 3,
-    Transfer is min(A, 3 - B),
-    NewA is A - Transfer,
-    NewB is B + Transfer.
+% Goal: either jug has the target amount
+goal(state(X,_)) :- target(X).
+goal(state(_,Y)) :- target(Y).
 
-% Pour B to A
-move(state(A, B), state(NewA, NewB)) :-
-    B > 0, A < 4,
-    Transfer is min(B, 4 - A),
-    NewB is B - Transfer,
-    NewA is A + Transfer.
+% Allowed moves
 
-/* DFS: Path search */
-dfs(State, Path, [State | Path]) :-
+% Fill jug1
+move(state(X,Y), state(C1,Y)) :-
+    capacity(jug1, C1),
+    X < C1.
+
+% Fill jug2
+move(state(X,Y), state(X,C2)) :-
+    capacity(jug2, C2),
+    Y < C2.
+
+% Empty jug1
+move(state(X,Y), state(0,Y)) :-
+    X > 0.
+
+% Empty jug2
+move(state(X,Y), state(X,0)) :-
+    Y > 0.
+
+% Pour jug1 -> jug2
+move(state(X,Y), state(X2,Y2)) :-
+    X > 0,
+    capacity(jug2, C2),
+    Space is C2 - Y,
+    Transfer is min(X, Space),
+    X2 is X - Transfer,
+    Y2 is Y + Transfer.
+
+% Pour jug2 -> jug1
+move(state(X,Y), state(X2,Y2)) :-
+    Y > 0,
+    capacity(jug1, C1),
+    Space is C1 - X,
+    Transfer is min(Y, Space),
+    X2 is X + Transfer,
+    Y2 is Y - Transfer.
+
+% DFS search: dfs(CurrentState, VisitedStates, Path)
+dfs(State, Visited, [State]) :-
     goal(State).
 
-dfs(State, Visited, FinalPath) :-
+dfs(State, Visited, [State|Path]) :-
     move(State, NextState),
-    \+ member(NextState, Visited),  % Avoid cycles
-    dfs(NextState, [State | Visited], FinalPath).
+    \+ member(NextState, Visited),
+    dfs(NextState, [NextState|Visited], Path).
 
-/* Solve and print the result */
+% Helper predicate to solve and print the path
 solve :-
-    dfs(state(0, 0), [], Path),
-    reverse(Path, SolutionPath),
-    write('Solution Path:'), nl,
-    print_path(SolutionPath),
-    last(SolutionPath, Goal),
-    write('Goal State: '), write(Goal), nl.
+    initial_state(Start),
+    dfs(Start, [Start], Path),
+    print_path(Path).
 
 print_path([]).
-print_path([H | T]) :-
-    write(H), nl,
+print_path([state(X,Y)|T]) :-
+    format('Jug1: ~w liters, Jug2: ~w liters~n', [X,Y]),
     print_path(T).
+    
+%solve.
